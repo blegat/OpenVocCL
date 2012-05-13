@@ -3,46 +3,57 @@
 
 usage() {
 	echo "
-	usage: $0 -i INPUT -o OUTPUT [-f] [-v]
+	usage: $0 -i INPUT -o OUTPUT [-s SAVE] [-c] [-f] [-h] [-v]
 
 	This script ask you every word of INPUT
 	and output the failed one in OUTPUT.
 
 	OPTIONS:
+	-c      Activate colored output
+	-f      French to English
 	-h      Show this message
 	-i      Input file
 	-o      Output file
-	-f      French to English
+	-s      Save file
 	-v      Verbose
 	"
 }
 
+totally_badass_random() {
+	ran=`date +%S`
+	if [ "x${ran:0}" == "x0" ]; then # interpreted as base 8 by 'let' command which is not desired and crash for 08 and 09
+		ran="${ran:1}"
+	fi
+	echo $ran
+}
+
 random_congrat() {
-	ran=`date +%S` # number of seconds (this is pretty random)
+	ran=`totally_badass_random` # number of seconds (this is pretty random)
 	let "ran %= 6"
 	case $ran in
 		0)
-			echo "Congratulation, your answer is perfectly correct !"
+			s="Congratulation, your answer is perfectly correct !"
 			;;
 		1)
-			echo "Your answer is as perfect as Linux is the best :)"
+			s="Your answer is as perfect as Linux is the best :)"
 			;;
 		2)
-			echo "Perfection is here, I feel it"
+			s="Perfection is here, I feel it"
 			;;
 		3)
-			echo "Teach me master :o"
+			s="Teach me master :o"
 			;;
 		4)
-			echo "Mother of god 8-o"
+			s="Mother of god 8-o"
 			;;
 		5)
-			echo "This is the second best answer after '42'"
+			s="This is the second best answer after '42'"
 			;;
 		?)
 			echo "FATAL ERROR, please report it :)"
 			;;
 	esac
+	green $s
 }
 
 random_fail_mess() {
@@ -50,77 +61,37 @@ random_fail_mess() {
 	let "ran %= 6"
 	case $ran in
 		0)
-			echo "Not quite :/"
+			s="Not quite :/"
 			;;
 		1)
-			echo "Not exactly sir..."
+			s="Not exactly sir..."
 			;;
 		2)
-			echo "Well tried but no :)"
+			s="Well tried but no :)"
 			;;
 		3)
-			echo "*FACE PALM*"
+			s="*FACE PALM*"
 			;;
 		4)
-			echo "Epic fail dude..."
+			s="Epic fail dude..."
 			;;
 		5)
-			echo "You dumbass :)"
+			s="Yeah sure, and I'm fucking banana with wings..."
 			;;
 		?)
-			echo "Yeah sure, and I'm fucking banana with wings..."
+			echo "FATAL ERROR, please report it :)"
 			;;
 	esac
-}
-
-play() {
-	OUT=$1
-	FRTOEN=$2
-	VERBOSE=$3
-	echo "Let's play"
-	inl=english
-	oul=french
-	if $FRTOEN; then
-		inl=french
-		oul=english
-	fi
-	while read line; do
-		en=`echo $line | cut -d \| -f 1`
-		fr=`echo $line | cut -d \| -f 2`
-		ins=$en
-		ous=$fr
-		if $FRTOEN; then
-			ins=$fr
-			ous=$en
-		fi
-		echo "How would you translate this $inl sentence"
-		echo "$ins"
-		read -p "In $oul ? " ans
-		if [ "x$ans" == "x$ous" ]; then
-			random_congrat
-			success=true
-			read -p "Do you want to consider it as a fail anyway ? [y/N] " answer
-			if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
-				success=false
-			fi
-		else
-			random_fail_mess
-			echo "The answer was"
-			echo "$ous"
-			success=false
-			read -p "Do you want to consider it as a success anyway ? [y/N] " answer
-			if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
-				success=true
-			fi
-		fi
-	done
+	red $s
 }
 
 IN=
 OUT=
+SAVE=
 FRTOEN=false
 VERBOSE=false
-while getopts "hi:o:fv" OPTION; do
+COLOR_ON=false
+while getopts "hi:o:s:fvc" OPTION; do
 	case $OPTION in
 		h)
 			usage
@@ -132,24 +103,81 @@ while getopts "hi:o:fv" OPTION; do
 		o)
 			OUT=$OPTARG
 			;;
+		s)
+			SAVE=$OPTARG
+			;;
 		f)
 			FRTOEN=true
 			;;
 		v)
 			VERBOSE=true
 			;;
+		c)
+			COLOR_ON=true
+			;;
 		?)
+			echo "$OPTION is not a valid argument"
 			usage
 			exit 1
 			;;
 	esac
 done
+
+color_test() {
+	if $COLOR_ON; then
+		echo -en "\033[$1m"
+	fi
+}
+
+color_off() {
+	color_test "0"
+}
+
+yellow_on() {
+	color_test "1;33"
+}
+
+green_on() {
+	color_test "1;32"
+}
+
+red_on() {
+	color_test "1;31"
+}
+
+yellow() {
+	yellow_on
+	echo $1
+	color_off
+}
+
+green() {
+	green_on
+	echo $1
+	color_off
+}
+
+red() {
+	red_on
+	echo $1
+	color_off
+}
+
+color_off
+
 if $VERBOSE; then
 	echo "Verbose mode activated"
 	if $FRTOEN; then
 		echo "French to English activated"
 	else
 		echo "English to French activated"
+	fi
+	if $COLOR_ON; then
+		red_on
+		echo -n "Color "
+		green_on
+		echo "activated"
+		color_off
 	fi
 fi
 
@@ -168,14 +196,143 @@ if [ ! -f "$IN" ]; then
 fi
 if [ -e "$OUT" ]; then
 	if [ -f "$OUT" ]; then
-		read -p "$OUT already exists. Overwrite it ? [y/N] " answer
-		if [[ "x$answer" != "xy" ]] && [[ "x$answer" != "xY" ]]; then
-			exit 1
-		fi
+		#read -p "$OUT already exists. Overwrite it ? [y/N] " answer
+		#if [[ "x$answer" != "xy" ]] && [[ "x$answer" != "xY" ]]; then
+			#exit 1
+		#fi
+		echo "$OUT already exists. The fails will be appending at the end of it."
 	else
 		echo "$OUT exists and is not a file"
 		exit 1
 	fi
 fi
 
-cat $IN | play "$OUT" $FRTOEN $VERBOSE
+echo "Let's play"
+inl=english
+oul=french
+if $FRTOEN; then
+	inl=french
+	oul=english
+fi
+IFS=$'\n'
+saving_mode=false
+for line in `sort -R $IN`; do
+	if $saving_mode; then
+		echo $line >> $filename
+		continue
+	fi
+	en=`echo $line | cut -d \| -f 1`
+	fr=`echo $line | cut -d \| -f 2`
+	ins=$en
+	ous=$fr
+	if $FRTOEN; then
+		ins=$fr
+		ous=$en
+	fi
+	echo -n "How would you translate the $inl sentence "
+	yellow "$ins"
+	#read -p "In $oul ? " ans
+	echo -n "In $oul ? "
+	yellow_on
+	read ans
+	color_off
+	save=false
+	if [ "x$ans" == "x$ous" ]; then
+		random_congrat
+		success=true
+		answer="s"
+		while [ "x$answer" == "xs" ]; do
+			read -p "Do you want to consider it as a fail anyway ? [y/N/s] " answer
+			if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+				success=false
+			elif [ "x$answer" == "xs" ]; then
+				echo "Ok, we'll go to the save menu but before, answer to this question please :)"
+				save=true
+			fi
+		done
+	else
+		random_fail_mess
+		echo -n "The answer was "
+		yellow "$ous"
+		success=false
+		answer="s"
+		while [[ "x$answer" == "xs" ]] || [[ "x$answer" == "xC" ]]; do
+			read -p "Do you want to consider it as a success anyway ? [y/N/s] " answer
+			if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+				success=true
+			elif [[ "x$answer" == "xs" ]] || [[ "x$answer" == "xC" ]]; then
+				echo "Ok, we'll go to the save menu but before, answer to this question please :)"
+				save=true
+			fi
+		done
+	fi
+	if ! $success; then
+		echo $line >> $OUT
+	fi
+	if $save; then
+		echo "Your current fails have been stored in $OUT."
+		answer=
+		if [ -z $SAVE ]; then
+			read -p "It is possible to store the ones not tried yet in a file so you can resume later. Do you want to do it ? [Y/n/c] " answer
+		fi
+		store=true
+		cancel=false
+		if [[ "x$answer" == "xn" ]] || [[ "x$answer" == "xN" ]]; then
+			store=false
+		elif [[ "x$answer" == "xc" ]] || [[ "x$answer" == "xC" ]]; then
+			echo "Saving cancelled. Resuming now..."
+			cancel=true
+		fi
+		if ! $cancel; then
+			valid=false
+			resume_no_save=false
+			if $store; then
+				filename=$SAVE
+				while ! $valid; do
+					if [ -z $filename ]; then
+						read -p "Enter the filename where you want to save: " filename
+					fi
+					valid=true
+					if [ -e $filename ]; then
+						valid=false
+						if [ -f $filename ]; then
+							read -p "$filename already exists, do you want to overwrite it ? [y/N] " answer
+							if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+								valid=true
+								echo -n "" > $filename
+							else
+								read -p "Do you want to append to it ? [y/N] " answer
+								if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+									valid=true
+								fi
+							fi
+						fi
+					fi
+					if ! $valid; then
+						echo "$filename is not a valid filename"
+						read -p "Do you want to resume now ? [y/N] " answer
+						if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+							valid=true
+							resume_no_save=true
+						else
+							read -p "Do you still want to store it ? [Y/n] " answer
+							if [[ "x$answer" == "xn" ]] || [[ "x$answer" == "xN" ]]; then
+								store=false
+								valid=true
+							fi
+						fi
+					fi
+					if ! $valid; then
+						filename=
+					fi
+				done
+			fi
+			if ! $store; then
+				exit 0
+			fi
+			if ! $resume_no_save; then
+				saving_mode=true
+			fi
+		fi
+	fi
+done

@@ -1,0 +1,42 @@
+Here are two scripts made by Benoît Legat
+in order to help you sort the vocabulary
+you know and the one you don't know
+at the same time you are learning it.
+All of this automatically.
+
+If you want to use it, please COPY
+(don't move it, copy/pase it) the
+entire script_trainer directory out
+of Dropbox and then use it :)
+
+This scripts are written in bash so
+Windows users will have to launch an
+emulator while other users (GNU/Linux,
+Mac OS, BSD, Solaris, Unix, ...)
+will just have to run it from the
+command line.
+
+To run a script named 'main.sh' just
+write (without the '$')
+$ ./main.sh
+If it says that you don't have the
+permission, write
+$ chmod u+x main.sh
+And then retry
+$ ./main.sh
+
+To get help on how to use the script
+write
+$ ./main.sh -h
+
+trainer.sh:
+	This is the main script, more info with
+	$ ./trainer.sh -h
+merge.sh:
+	If there is 2 files where you store
+	Vocabulary and you want to merge it.
+	This script is your friend. Again
+	$ ./merge.sh
+table:
+	This is an example of vocabulary list that
+	can be used.

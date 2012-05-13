@@ -3,12 +3,19 @@
 
 usage() {
 	echo "
-	usage: $0 -i INPUT -o OUTPUT [-s SAVE] [-c] [-f] [-h] [-v]
+SYNOPSIS
+	$0 -i INPUT -o OUTPUT [-s SAVE] [-c] [-f] [-h] [-v]
 
+DESCRIPTION
 	This script ask you every word of INPUT
 	and output the failed one in OUTPUT.
+	If you don't have time to do them all,
+	you can save the INPUT you didn't do
+	in SAVE.
+	Every line of input must contain two
+	sentences separated by a '|'
 
-	OPTIONS:
+OPTIONS
 	-c      Activate colored output
 	-f      French to English
 	-h      Show this message
@@ -16,19 +23,47 @@ usage() {
 	-o      Output file
 	-s      Save file
 	-v      Verbose
-	"
+
+INTERACTIVE
+	After each guess, you are gently informed of
+	its correctness. You can then choose to
+	change its decision by saying 'y' (yes) or
+	'n' (no).
+	If you want to save your changes, enter 's'
+	instead. You will have the opportunity to
+	change its decision afterwards.
+
+EXAMPLE
+	Content of file1 and file2 before the command
+		file1:
+			House|Maison
+			Miscellaneous|Divers
+			Dog|Chien
+		file2:
+			Odd|Impair
+	$ $0 -i file1 -s file1 -o file2
+	The user successfully guess 'House' but fail
+	for 'Miscellaneous'. He saves with 's'
+	before 'Dog'.
+	Content of file1 and file2 after the command
+		file1:
+			Dog|Chien
+		file2:
+			Odd|Impair
+			Miscellaneous|Divers
+"
 }
 
 totally_badass_random() {
 	ran=`date +%S`
-	if [ "x${ran:0}" == "x0" ]; then # interpreted as base 8 by 'let' command which is not desired and crash for 08 and 09
+	if [ "${ran:0:1}" == "0" ]; then # interpreted as base 8 by 'let' command which is not desired and crash for 08 and 09
 		ran="${ran:1}"
 	fi
 	echo $ran
 }
 
 random_congrat() {
-	ran=`totally_badass_random` # number of seconds (this is pretty random)
+	ran=`totally_badass_random`
 	let "ran %= 6"
 	case $ran in
 		0)
@@ -57,7 +92,7 @@ random_congrat() {
 }
 
 random_fail_mess() {
-	ran=`date +%S` # number of seconds (this is pretty random)
+	ran=`totally_badass_random`
 	let "ran %= 6"
 	case $ran in
 		0)
@@ -116,7 +151,6 @@ while getopts "hi:o:s:fvc" OPTION; do
 			COLOR_ON=true
 			;;
 		?)
-			echo "$OPTION is not a valid argument"
 			usage
 			exit 1
 			;;
@@ -197,10 +231,10 @@ fi
 if [ -e "$OUT" ]; then
 	if [ -f "$OUT" ]; then
 		#read -p "$OUT already exists. Overwrite it ? [y/N] " answer
-		#if [[ "x$answer" != "xy" ]] && [[ "x$answer" != "xY" ]]; then
+		#if [[ "$answer" != "y" ]] && [[ "$answer" != "Y" ]]; then
 			#exit 1
 		#fi
-		echo "$OUT already exists. The fails will be appending at the end of it."
+		echo "$OUT already exists. The fails will be appended at the end of it."
 	else
 		echo "$OUT exists and is not a file"
 		exit 1
@@ -237,15 +271,15 @@ for line in `sort -R $IN`; do
 	read ans
 	color_off
 	save=false
-	if [ "x$ans" == "x$ous" ]; then
+	if [ "$ans" == "$ous" ]; then
 		random_congrat
 		success=true
 		answer="s"
-		while [ "x$answer" == "xs" ]; do
+		while [[ "$answer" == "s" ]] || [[ "$answer" == "S" ]]; do
 			read -p "Do you want to consider it as a fail anyway ? [y/N/s] " answer
-			if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+			if [[ "$answer" == "y" ]] || [[ "$answer" == "Y" ]]; then
 				success=false
-			elif [ "x$answer" == "xs" ]; then
+			elif [[ "$answer" == "s" ]] || [[ "$answer" == "S" ]]; then
 				echo "Ok, we'll go to the save menu but before, answer to this question please :)"
 				save=true
 			fi
@@ -256,11 +290,11 @@ for line in `sort -R $IN`; do
 		yellow "$ous"
 		success=false
 		answer="s"
-		while [[ "x$answer" == "xs" ]] || [[ "x$answer" == "xC" ]]; do
+		while [[ "$answer" == "s" ]] || [[ "$answer" == "S" ]]; do
 			read -p "Do you want to consider it as a success anyway ? [y/N/s] " answer
-			if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+			if [[ "$answer" == "y" ]] || [[ "$answer" == "Y" ]]; then
 				success=true
-			elif [[ "x$answer" == "xs" ]] || [[ "x$answer" == "xC" ]]; then
+			elif [[ "$answer" == "s" ]] || [[ "$answer" == "S" ]]; then
 				echo "Ok, we'll go to the save menu but before, answer to this question please :)"
 				save=true
 			fi
@@ -277,9 +311,9 @@ for line in `sort -R $IN`; do
 		fi
 		store=true
 		cancel=false
-		if [[ "x$answer" == "xn" ]] || [[ "x$answer" == "xN" ]]; then
+		if [[ "$answer" == "n" ]] || [[ "$answer" == "N" ]]; then
 			store=false
-		elif [[ "x$answer" == "xc" ]] || [[ "x$answer" == "xC" ]]; then
+		elif [[ "$answer" == "c" ]] || [[ "$answer" == "C" ]]; then
 			echo "Saving cancelled. Resuming now..."
 			cancel=true
 		fi
@@ -297,12 +331,12 @@ for line in `sort -R $IN`; do
 						valid=false
 						if [ -f $filename ]; then
 							read -p "$filename already exists, do you want to overwrite it ? [y/N] " answer
-							if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+							if [[ "$answer" == "y" ]] || [[ "$answer" == "Y" ]]; then
 								valid=true
 								echo -n "" > $filename
 							else
 								read -p "Do you want to append to it ? [y/N] " answer
-								if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+								if [[ "$answer" == "y" ]] || [[ "$answer" == "Y" ]]; then
 									valid=true
 								fi
 							fi
@@ -311,12 +345,12 @@ for line in `sort -R $IN`; do
 					if ! $valid; then
 						echo "$filename is not a valid filename"
 						read -p "Do you want to resume now ? [y/N] " answer
-						if [[ "x$answer" == "xy" ]] || [[ "x$answer" == "xY" ]]; then
+						if [[ "$answer" == "y" ]] || [[ "$answer" == "Y" ]]; then
 							valid=true
 							resume_no_save=true
 						else
 							read -p "Do you still want to store it ? [Y/n] " answer
-							if [[ "x$answer" == "xn" ]] || [[ "x$answer" == "xN" ]]; then
+							if [[ "$answer" == "n" ]] || [[ "$answer" == "N" ]]; then
 								store=false
 								valid=true
 							fi

@@ -4,7 +4,7 @@
 usage() {
 	echo "
 SYNOPSIS
-	$0 -i INPUT -o OUTPUT [-s SAVE] [-c] [-f] [-h] [-v]
+	$0 -i INPUT -o OUTPUT [-s SAVE] [-c] [-f] [-h] [-v] [-r]
 
 DESCRIPTION
 	This script ask you every word of INPUT
@@ -21,6 +21,8 @@ OPTIONS
 	-h      Show this message
 	-i      Input file
 	-o      Output file
+	-r      Ask in a random order
+	         /!\ This only works on GNU/Linux
 	-s      Save file
 	-v      Verbose
 
@@ -64,16 +66,16 @@ totally_badass_random() {
 
 random_congrat() {
 	ran=`totally_badass_random`
-	let "ran %= 6"
+	let "ran %= 10"
 	case $ran in
 		0)
 			s="Congratulation, your answer is perfectly correct !"
 			;;
 		1)
-			s="Your answer is as perfect as Linux is the best :)"
+			s="Your answer is as perfect as Linux is the future :)"
 			;;
 		2)
-			s="Perfection is here, I feel it"
+			s="Perfection is here, I feel it."
 			;;
 		3)
 			s="Teach me master :o"
@@ -84,6 +86,18 @@ random_congrat() {
 		5)
 			s="This is the second best answer after '42'"
 			;;
+		6)
+			s="This is the best translation I've ever seen oO'"
+			;;
+		7)
+			s="Well this is pretty badass, but correct."
+			;;
+		8)
+			s="Exactly, it seems you got it."
+			;;
+		9)
+			s="I don't always have to congratulate people, but when I do, I don't."
+			;;
 		?)
 			echo "FATAL ERROR, please report it :)"
 			;;
@@ -93,7 +107,7 @@ random_congrat() {
 
 random_fail_mess() {
 	ran=`totally_badass_random`
-	let "ran %= 6"
+	let "ran %= 10"
 	case $ran in
 		0)
 			s="Not quite :/"
@@ -111,7 +125,19 @@ random_fail_mess() {
 			s="Epic fail dude..."
 			;;
 		5)
-			s="Yeah sure, and I'm fucking banana with wings..."
+			s="Yeah sure, and I'm Chuck f*cking Norris..."
+			;;
+		6)
+			s="Are you f*cking kidding me ?!?"
+			;;
+		7)
+			s="You seem to be pretty dumb on `date +%A`s."
+			;;
+		8)
+			s="I know it's `date +%Hh%M`, but please focus !"
+			;;
+		9)
+			s="Oh my god, you are a real dumbass dude."
 			;;
 		?)
 			echo "FATAL ERROR, please report it :)"
@@ -125,8 +151,9 @@ OUT=
 SAVE=
 FRTOEN=false
 VERBOSE=false
+RANDOM_ASK=false
 COLOR_ON=false
-while getopts "hi:o:s:fvc" OPTION; do
+while getopts "hi:o:s:fvcr" OPTION; do
 	case $OPTION in
 		h)
 			usage
@@ -149,6 +176,9 @@ while getopts "hi:o:s:fvc" OPTION; do
 			;;
 		c)
 			COLOR_ON=true
+			;;
+		r)
+			RANDOM_ASK=true
 			;;
 		?)
 			usage
@@ -213,6 +243,9 @@ if $VERBOSE; then
 		echo "activated"
 		color_off
 	fi
+	if $RANDOM_ASK; then
+		echo "Random activated"
+	fi
 fi
 
 if [[ -z "$IN" ]] || [[ -z "$OUT" ]]; then
@@ -241,6 +274,14 @@ if [ -e "$OUT" ]; then
 	fi
 fi
 
+input() {
+	if $RANDOM_ASK; then
+		sort -R $IN
+	else
+		cat $IN
+	fi
+}
+
 echo "Let's play"
 inl=english
 oul=french
@@ -250,7 +291,7 @@ if $FRTOEN; then
 fi
 IFS=$'\n'
 saving_mode=false
-for line in `sort -R $IN`; do
+for line in `input`; do
 	if $saving_mode; then
 		echo $line >> $filename
 		continue
@@ -370,3 +411,6 @@ for line in `sort -R $IN`; do
 		fi
 	fi
 done
+if $saving_mode; then
+	echo "The words not yet asked have been saved in $filename."
+fi
